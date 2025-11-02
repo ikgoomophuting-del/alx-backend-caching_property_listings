@@ -3,7 +3,7 @@ version: '3.9'
 services:
   db:
     image: postgres:latest
-    restart: always
+    container_name: postgres_db
     environment:
       POSTGRES_DB: property_db
       POSTGRES_USER: property_user
@@ -12,12 +12,18 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
 
   redis:
     image: redis:latest
-    restart: always
+    container_name: redis_cache
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
 
   web:
     build: .
@@ -29,6 +35,12 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - backend
 
 volumes:
   postgres_data:
+  redis_data:
+
+networks:
+  backend:
