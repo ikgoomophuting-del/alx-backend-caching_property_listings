@@ -1,5 +1,7 @@
 python manage.py makemigrations
 python manage.py migrate
+python manage.py shell
+
 
 from properties.models import Property
 from django.core.cache import cache
