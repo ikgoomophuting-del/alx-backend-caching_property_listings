@@ -1,1 +1,5 @@
+pip install django psycopg2-binary django-redis
+django
+psycopg2-binary
+django-redis
 
