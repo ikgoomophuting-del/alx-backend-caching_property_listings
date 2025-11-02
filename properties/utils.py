@@ -13,12 +13,15 @@ def get_all_properties():
 
     if properties is None:
         # Cache miss → fetch from DB
-        properties = list(Property.objects.all().values(
-            'id', 'title', 'description', 'price', 'location', 'created_at'
-        ))
-        # Store in cache for 1 hour (3600 seconds)
-        cache.set('all_properties', properties, 3600)
-        logger.info("Cache MISS: Fetched properties from DB and stored in Redis.")
+        try:
+            properties = list(Property.objects.all().values(
+                'id', 'title', 'description', 'price', 'location', 'created_at'
+            ))
+            cache.set('all_properties', properties, 3600)
+            logger.info("Cache MISS: Queried DB and stored in Redis.")
+        except Exception as e:
+            logger.error(f"Error fetching properties from DB: {e}")
+            properties = []
     else:
         logger.info("Cache HIT: Retrieved properties from Redis.")
 
@@ -29,21 +32,34 @@ def get_redis_cache_metrics():
     """
     Retrieve Redis cache performance metrics.
     Returns a dict with hits, misses, and hit ratio.
+    Logs both info and error messages.
     """
-    redis_conn = get_redis_connection("default")
-    info = redis_conn.info()
+    try:
+        redis_conn = get_redis_connection("default")
+        info = redis_conn.info()
 
-    hits = info.get('keyspace_hits', 0)
-    misses = info.get('keyspace_misses', 0)
+        hits = info.get('keyspace_hits', 0)
+        misses = info.get('keyspace_misses', 0)
 
-    total_requests = hits + misses
-    hit_ratio = (hits / total_requests) if total_requests > 0 else 0.0
+        total_requests = hits + misses
+        hit_ratio = (hits / total_requests) if total_requests > 0 else 0.0
 
-    metrics = {
-        "hits": hits,
-        "misses": misses,
-        "hit_ratio": round(hit_ratio, 2)
-    }
+        metrics = {
+            "hits": hits,
+            "misses": misses,
+            "hit_ratio": round(hit_ratio, 2)
+        }
 
-    logger.info(f"Redis Cache Metrics → Hits: {hits}, Misses: {misses}, Hit Ratio: {metrics['hit_ratio']}")
-    return metrics
+        logger.info(
+            f"Redis Cache Metrics → Hits: {hits}, Misses: {misses}, Hit Ratio: {metrics['hit_ratio']}"
+        )
+        return metrics
+
+    except Exception as e:
+        logger.error(f"Error retrieving Redis cache metrics: {e}")
+        return {
+            "hits": 0,
+            "misses": 0,
+            "hit_ratio": 0.0,
+            "error": str(e)
+        }
